@@ -1,14 +1,14 @@
 from tkinter import *
 import pygame
+
+from node import Node
 pygame.init()
 
 screen = pygame.display.set_mode((1000, 800))
 
-
 columns = 50
 rows = 50
-grid = [[0] * rows for i in range(columns)]
-
+grid = [[Node] * rows for i in range(columns)]
 
 app_running = True
 
