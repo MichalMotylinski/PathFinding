@@ -20,6 +20,7 @@ for i in range(grid_class.columns):
         grid[i][j].draw_node(screen, (255, 255, 255), 1, grid_class.width / grid_class.columns,
                              grid_class.height / grid_class.rows)
 
+
 """for i in range(grid.columns):
     for j in range(grid.rows):
         def draw_node(self, screen, color, thickness, width, height):
@@ -29,7 +30,10 @@ for i in range(grid_class.columns):
 """draw_grid(grid, screen, (255, 255, 255), x, y)"""
 
 app_running = True
-
+q = 0
+g = 0
+b = 0
+fps = 0
 while app_running:
     ev = pygame.event.poll()
     if ev.type == pygame.QUIT:
@@ -37,8 +41,19 @@ while app_running:
         continue
 
     pygame.display.update()
+    fps += clock.get_fps()
+    clock.tick(30)
+    if q < grid_class.columns:
+        #print(q)
+        grid[10][0+q].draw_node(screen, (255, 255-q*2, 255 - q*2), 0, grid_class.width / grid_class.columns,
+                                   grid_class.height / grid_class.rows)
 
-    clock.tick(60)
-    #print(clock.get_fps())
+        p = grid[10][0 + q].neighbours
+
+        """if 1 < q < 49:
+            print(str(p[1].position_x) + " " + str(p[1].position_y))
+        else:
+            print(str(p[1].position_x) + " " + str(p[1].position_y))"""
+        q += 1
 
 pygame.quit()
