@@ -8,9 +8,13 @@ class Node:
         self.obstacle = obstacle
         self.visited = False
         self.neighbours = []
-        self.parent = Node
+        self.parent = self
+        # distance from starting node
         self.g_cost = 0
+        # distance from end node (heuristic)
         self.h_cost = 0
+        # total distance (g + h)
+        self.f_cost = 0
         self.position_x = position_x
         self.position_y = position_y
         self.start_node = 0

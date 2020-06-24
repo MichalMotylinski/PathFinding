@@ -3,6 +3,7 @@ import pygame
 
 from node import Node
 from grid import Grid
+import a_star
 
 pygame.init()
 
@@ -21,6 +22,9 @@ bright_red = (255, 0, 0)
 dark_green = (0, 150, 0)
 green = (0, 200, 0)
 bright_green = (0, 255, 0)
+dark_yellow = (150, 150, 0)
+yellow = (200, 200, 0)
+bright_yellow = (255, 255, 0)
 blue = (0, 0, 255)
 grey = (220, 220, 220)
 
@@ -57,21 +61,27 @@ def text_object(text, font):
     return text_surface, text_surface.get_rect()
 
 
-def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, clicked_color):
+def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, clicked_color, event):
     global mouse_color, put_start_node, put_end_node
     mouse_pos = pygame.mouse.get_pos()
-    clicked = pygame.mouse.get_pressed()
+
     if pos_x + width > mouse_pos[0] > pos_x and pos_y + height > mouse_pos[1] > pos_y:
         pygame.draw.rect(screen, hovered_color, (pos_x, pos_y, width, height))
-        if clicked[0] == 1:
+        if event.type == pygame.MOUSEBUTTONDOWN:
             pygame.draw.rect(screen, clicked_color, (pos_x, pos_y, width, height))
-            mouse_color = normal_color
+
             if text == "Start position":
                 put_start_node = True
                 put_end_node = False
+                mouse_color = normal_color
             elif text == "End position":
                 put_end_node = True
                 put_start_node = False
+                mouse_color = normal_color
+            elif text == "Solve A*":
+                a_star.solve_a_star(grid, grid_class.start_node, grid_class.end_node)
+                draw_path()
+
     else:
         pygame.draw.rect(screen, normal_color, (pos_x, pos_y, width, height))
 
@@ -85,6 +95,21 @@ def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, click
 def draw_node(pos_x, pos_y, color):
     grid[pos_x][pos_y].draw_node(screen, color, 0, node_width, node_height)
     grid[pos_x][pos_y].draw_node(screen, black, 1, node_width, node_height)
+
+
+def draw_path():
+    if grid_class.end_node != -1:
+        print("aa")
+        start_node = grid[grid_class.start_node[0]][grid_class.start_node[1]]
+        end_node = grid[grid_class.end_node[0]][grid_class.end_node[1]]
+        path = end_node
+
+        print(end_node.position_x, end_node.position_y)
+        print(path.parent.position_x, path.parent.position_y)
+        #while path.parent:
+            #print(path.parent.position_x, path.parent.position_y)
+            #draw_node(path.parent.position_x, path.parent.position_y, blue)
+            #path = path.parent
 
 
 # Draw representation of the created grid on the screen
@@ -103,8 +128,9 @@ while app_running:
     mouse = pygame.mouse.get_pos()
     mouse_clicked = pygame.mouse.get_pressed()
 
-    button("Start position", 825, 50, 150, 50, dark_green, green, bright_green)
-    button("End position", 1025, 50, 150, 50, dark_red, red, bright_red)
+    button("Start position", 825, 50, 150, 50, dark_green, green, bright_green, ev)
+    button("End position", 1025, 50, 150, 50, dark_red, red, bright_red, ev)
+    button("Solve A*", 925, 150, 150, 50, dark_yellow, yellow, bright_yellow, ev)
 
     if grid_class.width > mouse[0] > 0 and grid_class.height > mouse[1] > 0:
         node_x = int(mouse[0] / node_width)
@@ -139,16 +165,7 @@ while app_running:
         draw_node(grid_class.end_node[0], grid_class.end_node[1], mouse_color)
         old_end_node = grid_class.end_node
 
-    """if clicked[0] == 1:
-        print("aaa")
-        if grid_class.width > mouse[0] > 0 and grid_class.height > mouse[1] > 0:
-            node_x = int(mouse[0] / node_width)
-            node_y = int(mouse[1] / node_height)
-
-            if (node_width * node_x) + node_width > mouse[0] > node_width * node_x \
-                    and (node_height * node_y) + node_height > mouse[1] > node_height * node_y:
-                draw_node(node_x, node_y, mouse_color)"""
 
     pygame.display.update()
-    clock.tick(60)
+    clock.tick(30)
 pygame.quit()
