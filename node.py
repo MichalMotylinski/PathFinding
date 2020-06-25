@@ -10,14 +10,14 @@ class Node:
         self.neighbours = []
         self.parent = self
         # distance from starting node
-        self.g_cost = 0
+        self.g_cost = float('inf')
         # distance from end node (heuristic)
-        self.h_cost = 0
+        self.h_cost = float('inf')
         # total distance (g + h)
         self.f_cost = 0
         self.position_x = position_x
         self.position_y = position_y
-        self.start_node = 0
+        self.start_node = float('inf')
 
     @property
     def obstacle(self):
