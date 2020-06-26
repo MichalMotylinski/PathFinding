@@ -8,6 +8,14 @@ def calculate_node_distance(node_a, node_b):
 
 def solve_a_star(grid, start_node_coords, end_node_coords):
 
+    for i in range(50):
+        for j in range(50):
+            if not grid[i][j].obstacle:
+                grid[i][j].g_cost = float('inf')
+                grid[i][j].h_cost = float('inf')
+                grid[i][j].visited = False
+                grid[i][j].parent = None
+
     open_list = PriorityQueue()
     closed_list = []
 
@@ -27,6 +35,8 @@ def solve_a_star(grid, start_node_coords, end_node_coords):
         element = open_list.get()
         current_node = grid[element[1][0]][element[1][1]]
 
+        if current_node == end_node:
+            break
         # Find node with smallest cost
         """current_index = 0
         for index, node in enumerate(open_list):
@@ -51,7 +61,7 @@ def solve_a_star(grid, start_node_coords, end_node_coords):
 
                 h_cost = neighbour.h_cost
                 open_list.put((h_cost, (neighbour.position_x, neighbour.position_y)))
-                #neighbour.visited = True
+                neighbour.visited = True
                 current_node = neighbour
 
 
