@@ -66,6 +66,7 @@ def solve_a_star(grid, start_node_coords, end_node_coords):
 
 
     total_cost = calculate_node_distance(start_node, end_node)
+
     """print("Start: " + str(start_node.position_x) + ", " + str(start_node.position_y))
     print("End: " + str(end_node.position_x) + ", " + str(end_node.position_y))
     print(end_node.position_x - start_node.position_x)
