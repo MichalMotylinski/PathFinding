@@ -5,8 +5,8 @@ from node import Node
 
 class Grid:
     def __init__(self):
-        self.columns = 50
-        self.rows = 50
+        self.columns = 40
+        self.rows = 40
         self.width = 800
         self.height = 800
         self.start_node = (-1, -1)

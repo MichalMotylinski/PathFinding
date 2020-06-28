@@ -1,4 +1,5 @@
 import math
+import time
 from queue import PriorityQueue
 
 
@@ -7,20 +8,22 @@ def calculate_node_distance(node_a, node_b):
     return math.sqrt((node_b.position_x - node_a.position_x)**2 + (node_b.position_y - node_a.position_y)**2)
 
 
-def solve_a_star(grid, start_node_coords, end_node_coords):
+def solve_a_star(grid, start_node_coords, end_node_coords, visited_list):
+
+    alg_start = time.perf_counter()
 
     # Reset parameters of all visited nodes considered in previous path creation
-    for i in range(50):
-        for j in range(50):
-            if not grid[i][j].obstacle:
-                grid[i][j].g_cost = float('inf')
-                grid[i][j].h_cost = float('inf')
-                grid[i][j].visited = False
-                grid[i][j].parent = None
+    for node in visited_list:
+        if not node.obstacle:
+            node.g_cost = float('inf')
+            node.h_cost = float('inf')
+            node.visited = False
+            node.parent = None
 
     # Create priority queue for nodes
     open_list = PriorityQueue()
-    closed_list = []
+    old_visited_list = visited_list
+    visited_list = []
 
     # Get node objects for start and end of the path
     start_node = grid[start_node_coords[0]][start_node_coords[1]]
@@ -33,6 +36,7 @@ def solve_a_star(grid, start_node_coords, end_node_coords):
 
     # Add start node to the priority queue to have a starting point
     open_list.put((start_node.h_cost, (start_node.position_x, start_node.position_y)))
+    visited_list.append(start_node)
 
     while not open_list.empty():
 
@@ -45,11 +49,11 @@ def solve_a_star(grid, start_node_coords, end_node_coords):
             break
 
         # Move current node to a closed list and set it as visited
-        closed_list.append(current_node)
         current_node.visited = True
 
         # Loop through all neighbours of a current node
         for neighbour in current_node.neighbours:
+            visited_list.append(neighbour) if neighbour not in visited_list else visited_list
             # Skip the node if it was already visited or is an obstacle
             if neighbour.visited is True or neighbour.obstacle is True:
                 continue
@@ -68,4 +72,9 @@ def solve_a_star(grid, start_node_coords, end_node_coords):
                 neighbour.visited = True
 
     # Calculate total path cost from start to end
-    total_cost = calculate_node_distance(start_node, end_node)
+    total_cost = round(calculate_node_distance(start_node, end_node), 5)
+
+    # Get time after algorithm is finished and calculate total time
+    alg_end = time.perf_counter()
+    alg_cost = round(alg_end - alg_start, 5)
+    return visited_list, old_visited_list, total_cost, alg_cost
