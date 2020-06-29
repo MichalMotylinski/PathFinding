@@ -48,13 +48,15 @@ end_node_created = False
 
 visited_list = []
 old_visited_list = []
-total_cost = 0
+path_list = []
+path_dist = 0
 total_time = 0
+start_end_dist = 0
 solved = False
 a_star_alg = False
 
 # Classes
-grid_class = Grid()
+grid = Grid()
 
 # Show application window and save to variable for further use
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.DOUBLEBUF)
@@ -67,9 +69,9 @@ clock = pygame.time.Clock()
 pygame.display.set_caption('Path finding')
 
 # Create grid of nodes
-grid = grid_class.create_grid()
-node_width = grid_class.width / grid_class.columns
-node_height = grid_class.height / grid_class.rows
+nodes_list = grid.create_grid()
+node_width = grid.width / grid.columns
+node_height = grid.height / grid.rows
 
 
 # Create surface with text rendered on it
@@ -79,7 +81,7 @@ def text_object(text, font, color):
 
 
 # Create legend/manual
-def legend(pos_x, pos_y, width, height, background_color, letters_color):
+def legend(pos_x, pos_y, width, height, background_color):
     pygame.draw.rect(screen, background_color, (pos_x, pos_y, width, height))
     text_font = pygame.font.Font("freesansbold.ttf", 14)
 
@@ -91,7 +93,7 @@ def legend(pos_x, pos_y, width, height, background_color, letters_color):
     pos_y = pos_y + 30
     texts = ("Choose action by pressing one of the buttons", "Left mouse button to create objects in the grid",
              "Right mouse button to remove objects from grid", separator, "Algorithm time: " + str(total_time) + " s",
-             "Total distance: " + str(total_cost))
+             "Start-End distance: " + str(start_end_dist), "Path distance: " + str(path_dist))
 
     for line in texts:
         pygame.draw.rect(screen, background_color, (pos_x, pos_y, width, height))
@@ -103,7 +105,8 @@ def legend(pos_x, pos_y, width, height, background_color, letters_color):
 
 # Create button functionality
 def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, clicked_color, mouse_event):
-    global mouse_color, put_start_node, put_end_node, put_obstacle, visited_list, old_visited_list, total_cost, total_time, a_star_alg
+    global mouse_color, put_start_node, put_end_node, put_obstacle, visited_list, old_visited_list, path_dist,\
+        total_time, a_star_alg
     mouse_pos = pygame.mouse.get_pos()
 
     if pos_x + width > mouse_pos[0] > pos_x and pos_y + height > mouse_pos[1] > pos_y:
@@ -133,7 +136,7 @@ def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, click
                 put_obstacle = False
                 mouse_color = white
                 reset_grid()
-            elif text == "Solve A*" and grid_class.start_node != (-1, -1) and grid_class.end_node != (-1, -1):
+            elif text == "Solve A*" and grid.start_node != (-1, -1) and grid.end_node != (-1, -1):
                 a_star_alg = True
     else:
         pygame.draw.rect(screen, normal_color, (pos_x, pos_y, width, height))
@@ -146,31 +149,35 @@ def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, click
 
 # Draw a node
 def draw_node(pos_x, pos_y, color):
-    grid[pos_x][pos_y].draw_node(screen, color, 0, node_width, node_height)
-    grid[pos_x][pos_y].draw_node(screen, black, 1, node_width, node_height)
+    nodes_list[pos_x][pos_y].draw_node(screen, color, 0, node_width, node_height)
+    nodes_list[pos_x][pos_y].draw_node(screen, black, 1, node_width, node_height)
 
 
 # Clear all cells of the grid and set default values for variables/parameters used
 def reset_grid():
-    global start_node_created, end_node_created, visited_list, a_star_alg
+    global start_node_created, end_node_created, visited_list, a_star_alg, path_dist, total_time, start_end_dist
     start_node_created = False
     end_node_created = False
     a_star_alg = False
-    grid_class.start_node = (-1, -1)
-    grid_class.end_node = (-1, -1)
-    for i in range(grid_class.columns):
-        for j in range(grid_class.rows):
-            grid[i][j].g_cost = float('inf')
-            grid[i][j].h_cost = float('inf')
-            grid[i][j].visited = False
-            grid[i][j].parent = None
-            grid[i][j].obstacle = False
-            draw_node(i, j, white)
+    grid.start_node = (-1, -1)
+    grid.end_node = (-1, -1)
+    path_dist = 0
+    start_end_dist = 0
+    total_time = 0
+    path_list.clear()
+    for x in range(grid.columns):
+        for y in range(grid.rows):
+            nodes_list[x][y].g_cost = float('inf')
+            nodes_list[x][y].h_cost = float('inf')
+            nodes_list[x][y].visited = False
+            nodes_list[x][y].parent = None
+            nodes_list[x][y].obstacle = False
+            draw_node(x, y, white)
 
 
 # Draw representation of the created grid on the screen
-for i in range(grid_class.columns):
-    for j in range(grid_class.rows):
+for i in range(grid.columns):
+    for j in range(grid.rows):
         draw_node(i, j, white)
 
 app_running = True
@@ -189,17 +196,18 @@ while app_running:
     node_y = int(mouse[1] / node_height)
 
     # Render UI
-    legend(825, 25, 350, 30, black, white)
-    button("Start position", 825, 240, 150, 50, dark_green, green, bright_green, event)
-    button("End position", 1025, 240, 150, 50, dark_red, red, bright_red, event)
-    button("Obstacle", 825, 300, 150, 50, dark_grey, grey, bright_grey, event)
-    button("Reset grid", 1025, 300, 150, 50, dark_magenta, magenta, bright_magenta, event)
-    button("Solve A*", 925, 360, 150, 50, dark_yellow, yellow, bright_yellow, event)
+    legend(825, 25, 350, 30, black)
+    button("Start position", 825, 280, 150, 50, dark_green, green, bright_green, event)
+    button("End position", 1025, 280, 150, 50, dark_red, red, bright_red, event)
+    button("Obstacle", 825, 340, 150, 50, dark_grey, grey, bright_grey, event)
+    button("Reset grid", 1025, 340, 150, 50, dark_magenta, magenta, bright_magenta, event)
+    button("Solve A*", 925, 400, 150, 50, dark_yellow, yellow, bright_yellow, event)
 
-    # Rendering path and visted nodes between start and end node
+    # Rendering path and visited nodes between start and end node
     if start_node_created and end_node_created:
         for node in visited_list:
-            if (node.position_x, node.position_y) != grid_class.start_node and (node.position_x, node.position_y) != grid_class.end_node:
+            if (node.position_x, node.position_y) != grid.start_node and (node.position_x,
+                                                                          node.position_y) != grid.end_node:
                 if node.visited:
                     draw_node(node.position_x, node.position_y, yellow)
                 if node.obstacle:
@@ -211,80 +219,110 @@ while app_running:
 
         if not solved:
             if a_star_alg:
-                visited_list, old_visited_list, total_cost, total_time = a_star.solve_a_star(grid,
-                                                                                     grid_class.start_node,
-                                                                                     grid_class.end_node,
-                                                                                     visited_list)
+                visited_list, old_visited_list, start_end_dist, total_time = a_star.solve_a_star(nodes_list,
+                                                                                                 grid.start_node,
+                                                                                                 grid.end_node,
+                                                                                                 visited_list)
                 solved = True
         if solved:
-            start_node = grid[grid_class.start_node[0]][grid_class.start_node[1]]
-            end_node = grid[grid_class.end_node[0]][grid_class.end_node[1]]
+            start_node = nodes_list[grid.start_node[0]][grid.start_node[1]]
+            end_node = nodes_list[grid.end_node[0]][grid.end_node[1]]
             path = end_node
+            path_dist = 0
+            path_list.clear()
             while path.parent is not None:
                 if path.parent.position_x == start_node.position_x and path.parent.position_y == start_node.position_y:
+                    if path_dist == 0:
+                        path_dist = path.parent.f_cost
                     break
-                draw_node(path.parent.position_x, path.parent.position_y, blue)
+                path_list.append(path.parent)
+                if path.parent.f_cost > path_dist:
+                    path_dist = path.parent.f_cost
                 path = path.parent
 
-    if grid_class.width > mouse[0] >= 0 and grid_class.height > mouse[1] >= 0:
+    # Draw path
+    for node in path_list:
+        if not node.obstacle:
+            draw_node(node.position_x, node.position_y, blue)
 
-        if old_node_x != -1 and old_node_y != -1 and not grid[old_node_x][old_node_y].visited and not grid[old_node_x][old_node_y].obstacle:
+    # Rendering cells colors when hoovering over with mouse
+    if grid.width > mouse[0] >= 0 and grid.height > mouse[1] >= 0:
+
+        if old_node_x != -1 and old_node_y != -1 and not nodes_list[old_node_x][old_node_y].visited \
+                and not nodes_list[old_node_x][old_node_y].obstacle:
             draw_node(old_node_x, old_node_y, white)
-        elif old_node_x != -1 and old_node_y != -1 and grid[old_node_x][old_node_y].visited:
+        elif old_node_x != -1 and old_node_y != -1 and nodes_list[old_node_x][old_node_y].visited:
             draw_node(old_node_x, old_node_y, yellow)
-            if grid[old_node_x][old_node_y].obstacle:
+            if nodes_list[old_node_x][old_node_y].obstacle:
                 draw_node(old_node_x, old_node_y, dark_grey)
+            elif nodes_list[old_node_x][old_node_y] in path_list and not nodes_list[old_node_x][old_node_y].obstacle:
+                draw_node(old_node_x, old_node_y, blue)
 
         if (node_width * node_x) + node_width >= mouse[0] >= node_width * node_x \
-                and (node_height * node_y) + node_height >= mouse[1] >= node_height * node_y and not grid[node_x][node_y].obstacle:
+                and (node_height * node_y) + node_height >= mouse[1] >= node_height * node_y \
+                and not nodes_list[node_x][node_y].obstacle:
             draw_node(node_x, node_y, mouse_color)
 
-            if mouse_clicked[0] == 1 and put_start_node and (node_x, node_y) != grid_class.end_node and not grid[node_x][node_y].obstacle:
-                grid_class.start_node = (node_x, node_y)
+            if mouse_clicked[0] == 1 and put_start_node and (node_x, node_y) != grid.end_node \
+                    and not nodes_list[node_x][node_y].obstacle:
+                grid.start_node = (node_x, node_y)
                 start_node_created = True
-                if grid[node_x][node_y].obstacle:
-                    grid[node_x][node_y].obstacle = False
+                if nodes_list[node_x][node_y].obstacle:
+                    nodes_list[node_x][node_y].obstacle = False
                 solved = False
-            elif mouse_clicked[0] == 1 and put_end_node and (node_x, node_y) != grid_class.start_node and not grid[node_x][node_y].obstacle:
-                grid_class.end_node = (node_x, node_y)
+            elif mouse_clicked[0] == 1 and put_end_node and (node_x, node_y) != grid.start_node \
+                    and not nodes_list[node_x][node_y].obstacle:
+                grid.end_node = (node_x, node_y)
                 end_node_created = True
-                if grid[node_x][node_y].obstacle:
-                    grid[node_x][node_y].obstacle = False
+                if nodes_list[node_x][node_y].obstacle:
+                    nodes_list[node_x][node_y].obstacle = False
                 solved = False
-            elif mouse_clicked[0] == 1 and put_obstacle and (node_x, node_y) != grid_class.start_node and (node_x, node_y) != grid_class.end_node:
-                grid[node_x][node_y].obstacle = True
+            elif mouse_clicked[0] == 1 and put_obstacle and (node_x, node_y) != grid.start_node \
+                    and (node_x, node_y) != grid.end_node:
+                nodes_list[node_x][node_y].obstacle = True
                 solved = False
 
             old_node_x = node_x
             old_node_y = node_y
 
     else:
-        if old_node_x != -1 and old_node_y != -1 and not grid[old_node_x][old_node_y].visited and not grid[old_node_x][old_node_y].obstacle:
+        if old_node_x != -1 and old_node_y != -1 and not nodes_list[old_node_x][old_node_y].visited \
+                and not nodes_list[old_node_x][old_node_y].obstacle:
             draw_node(old_node_x, old_node_y, white)
-        elif old_node_x != -1 and old_node_y != -1 and grid[old_node_x][old_node_y].visited:
+        elif old_node_x != -1 and old_node_y != -1 and nodes_list[old_node_x][old_node_y].visited:
             draw_node(old_node_x, old_node_y, yellow)
-        elif old_node_x != -1 and old_node_y != -1 and grid[old_node_x][old_node_y].obstacle:
-            draw_node(old_node_x, old_node_y, dark_grey)
+            if nodes_list[old_node_x][old_node_y].obstacle:
+                draw_node(old_node_x, old_node_y, dark_grey)
+            elif nodes_list[old_node_x][old_node_y] in path_list and not nodes_list[old_node_x][old_node_y].obstacle:
+                draw_node(old_node_x, old_node_y, blue)
 
+    # Remove obstacle action
     if mouse_clicked[2] == 1:
-        if (node_width * node_x) + node_width > mouse[0] > node_width * node_x and (node_height * node_y) + node_height > mouse[1] > node_height * node_y:
-            if grid[node_x][node_y].obstacle:
-                grid[node_x][node_y].obstacle = False
+        if (node_width * node_x) + node_width > mouse[0] > node_width * node_x \
+                and (node_height * node_y) + node_height > mouse[1] > node_height * node_y:
+            if nodes_list[node_x][node_y].obstacle:
+                nodes_list[node_x][node_y].obstacle = False
                 draw_node(node_x, node_y, white)
                 solved = False
 
-    if grid_class.start_node != (-1, -1) and start_node_created and not ((node_width * grid_class.start_node[0]) + node_width > mouse[0] > node_width * grid_class.start_node[0] and (node_height * grid_class.start_node[1]) + node_height > mouse[1] > node_height * grid_class.start_node[1]):
-        if grid[old_start_node[0]][old_start_node[1]].obstacle:
+    # Drawing start node
+    if not ((node_width * grid.start_node[0]) + node_width > mouse[0] > node_width * grid.start_node[0]
+            and (node_height * grid.start_node[1]) + node_height > mouse[1] > node_height * grid.start_node[1]) \
+            and grid.start_node != (-1, -1) and start_node_created:
+        if nodes_list[old_start_node[0]][old_start_node[1]].obstacle:
             draw_node(old_start_node[0], old_start_node[1], dark_grey)
         else:
             draw_node(old_start_node[0], old_start_node[1], white)
-        draw_node(grid_class.start_node[0], grid_class.start_node[1], dark_green)
-        old_start_node = grid_class.start_node
+        draw_node(grid.start_node[0], grid.start_node[1], dark_green)
+        old_start_node = grid.start_node
 
-    if grid_class.end_node != (-1, -1) and end_node_created and not ((node_width * grid_class.end_node[0]) + node_width > mouse[0] > node_width * grid_class.end_node[0] and (node_height * grid_class.end_node[1]) + node_height > mouse[1] > node_height * grid_class.end_node[1]):
+    # Drawing end node
+    if grid.end_node != (-1, -1) and end_node_created \
+            and not ((node_width * grid.end_node[0]) + node_width > mouse[0] > node_width * grid.end_node[0]
+                     and (node_height * grid.end_node[1]) + node_height > mouse[1] > node_height * grid.end_node[1]):
         draw_node(old_end_node[0], old_end_node[1], white)
-        draw_node(grid_class.end_node[0], grid_class.end_node[1], dark_red)
-        old_end_node = grid_class.end_node
+        draw_node(grid.end_node[0], grid.end_node[1], dark_red)
+        old_end_node = grid.end_node
 
     pygame.display.update()
     clock.tick(60)

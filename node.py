@@ -8,7 +8,7 @@ class Node:
         self.obstacle = obstacle
         self.visited = False
         self.neighbours = []
-        self.parent = self
+        self.parent = None
         # distance from starting node
         self.g_cost = float('inf')
         # distance from end node (heuristic)
