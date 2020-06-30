@@ -1,9 +1,7 @@
-from tkinter import *
 import pygame
 
-from node import Node
 from grid import Grid
-import a_star
+import alghorithms
 
 pygame.init()
 
@@ -53,7 +51,8 @@ path_dist = 0
 total_time = 0
 start_end_dist = 0
 solved = False
-a_star_alg = False
+run_a_star = False
+run_dijkstra = False
 
 # Classes
 grid = Grid()
@@ -105,8 +104,7 @@ def legend(pos_x, pos_y, width, height, background_color):
 
 # Create button functionality
 def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, clicked_color, mouse_event):
-    global mouse_color, put_start_node, put_end_node, put_obstacle, visited_list, old_visited_list, path_dist,\
-        total_time, a_star_alg
+    global mouse_color, put_start_node, put_end_node, put_obstacle, run_a_star, run_dijkstra
     mouse_pos = pygame.mouse.get_pos()
 
     if pos_x + width > mouse_pos[0] > pos_x and pos_y + height > mouse_pos[1] > pos_y:
@@ -137,7 +135,13 @@ def button(text, pos_x, pos_y, width, height, normal_color, hovered_color, click
                 mouse_color = white
                 reset_grid()
             elif text == "Solve A*" and grid.start_node != (-1, -1) and grid.end_node != (-1, -1):
-                a_star_alg = True
+                reset_algorithm(False)
+                run_dijkstra = False
+                run_a_star = True
+            elif text == "Solve Dijkstra" and grid.start_node != (-1, -1) and grid.end_node != (-1, -1):
+                reset_algorithm(False)
+                run_a_star = False
+                run_dijkstra = True
     else:
         pygame.draw.rect(screen, normal_color, (pos_x, pos_y, width, height))
 
@@ -155,24 +159,35 @@ def draw_node(pos_x, pos_y, color):
 
 # Clear all cells of the grid and set default values for variables/parameters used
 def reset_grid():
-    global start_node_created, end_node_created, visited_list, a_star_alg, path_dist, total_time, start_end_dist
+    global start_node_created, end_node_created, run_a_star, run_dijkstra
     start_node_created = False
     end_node_created = False
-    a_star_alg = False
+    run_a_star = False
+    run_dijkstra = False
     grid.start_node = (-1, -1)
     grid.end_node = (-1, -1)
+    reset_algorithm(True)
+
+
+# Reset algorithms data
+def reset_algorithm(full_reset):
+    global path_dist, start_end_dist, total_time, solved
     path_dist = 0
     start_end_dist = 0
     total_time = 0
     path_list.clear()
+    solved = False
     for x in range(grid.columns):
         for y in range(grid.rows):
             nodes_list[x][y].g_cost = float('inf')
             nodes_list[x][y].h_cost = float('inf')
-            nodes_list[x][y].visited = False
+
             nodes_list[x][y].parent = None
-            nodes_list[x][y].obstacle = False
-            draw_node(x, y, white)
+            nodes_list[x][y].visited = False
+            if full_reset:
+                nodes_list[x][y].obstacle = False
+
+                draw_node(x, y, white)
 
 
 # Draw representation of the created grid on the screen
@@ -201,7 +216,8 @@ while app_running:
     button("End position", 1025, 280, 150, 50, dark_red, red, bright_red, event)
     button("Obstacle", 825, 340, 150, 50, dark_grey, grey, bright_grey, event)
     button("Reset grid", 1025, 340, 150, 50, dark_magenta, magenta, bright_magenta, event)
-    button("Solve A*", 925, 400, 150, 50, dark_yellow, yellow, bright_yellow, event)
+    button("Solve A*", 825, 400, 150, 50, dark_yellow, yellow, bright_yellow, event)
+    button("Solve Dijkstra", 1025, 400, 150, 50, dark_yellow, yellow, bright_yellow, event)
 
     # Rendering path and visited nodes between start and end node
     if start_node_created and end_node_created:
@@ -218,11 +234,17 @@ while app_running:
                 draw_node(node.position_x, node.position_y, white)
 
         if not solved:
-            if a_star_alg:
-                visited_list, old_visited_list, start_end_dist, total_time = a_star.solve_a_star(nodes_list,
-                                                                                                 grid.start_node,
-                                                                                                 grid.end_node,
-                                                                                                 visited_list)
+            if run_a_star:
+                visited_list, old_visited_list, start_end_dist, total_time = alghorithms.a_star(nodes_list,
+                                                                                                grid.start_node,
+                                                                                                grid.end_node,
+                                                                                                visited_list)
+                solved = True
+            elif run_dijkstra:
+                visited_list, old_visited_list, start_end_dist, total_time = alghorithms.dijkstra(nodes_list,
+                                                                                                  grid.start_node,
+                                                                                                  grid.end_node,
+                                                                                                  visited_list)
                 solved = True
         if solved:
             start_node = nodes_list[grid.start_node[0]][grid.start_node[1]]
