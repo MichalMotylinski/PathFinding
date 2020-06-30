@@ -55,11 +55,13 @@ def a_star(grid, start_node_cords, end_node_cords, visited_list):
             # Skip the node if it was already visited or is an obstacle
             if neighbour.visited is True or neighbour.obstacle is True:
                 continue
-            # Calculate distance from current node to its neighbour
-            cost_to_parent = current_node.g_cost + calculate_node_distance(current_node, neighbour)
+            # Calculate distance from current node to the start node
+            parent_dist = calculate_node_distance(current_node, neighbour)
+            cost_to_parent = current_node.g_cost + parent_dist
 
             # Update the neighbour if calculated distance is lower than currently stored distance from node to start
             if cost_to_parent < neighbour.g_cost:
+                neighbour.parent_dist = parent_dist
                 neighbour.g_cost = cost_to_parent
                 if neighbour == end_node:
                     neighbour.h_cost = 0
@@ -129,11 +131,13 @@ def dijkstra(grid, start_node_cords, end_node_cords, visited_list):
             # Skip the node if it was already visited or is an obstacle
             if neighbour.visited is True or neighbour.obstacle is True:
                 continue
-            # Calculate distance from current node to its neighbour
-            cost_to_parent = current_node.g_cost + calculate_node_distance(current_node, neighbour)
+            # Calculate distance from current node to the start node
+            parent_dist = calculate_node_distance(current_node, neighbour)
+            cost_to_parent = current_node.g_cost + parent_dist
 
             # Update the neighbour if calculated distance is lower than currently stored distance from node to start
             if cost_to_parent < neighbour.g_cost:
+                neighbour.parent_dist = parent_dist
                 neighbour.g_cost = cost_to_parent
                 neighbour.f_cost = neighbour.g_cost
                 neighbour.parent = current_node

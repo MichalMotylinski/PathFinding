@@ -14,6 +14,7 @@ class Node:
         self.h_cost = float('inf')
         # total distance (g + h)
         self.f_cost = 0
+        self.parent_dist = 0
         self.position_x = position_x
         self.position_y = position_y
 

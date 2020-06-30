@@ -1,7 +1,7 @@
 import pygame
 
 from grid import Grid
-import alghorithms
+import algorithms
 
 pygame.init()
 
@@ -235,16 +235,16 @@ while app_running:
 
         if not solved:
             if run_a_star:
-                visited_list, old_visited_list, start_end_dist, total_time = alghorithms.a_star(nodes_list,
-                                                                                                grid.start_node,
-                                                                                                grid.end_node,
-                                                                                                visited_list)
+                visited_list, old_visited_list, start_end_dist, total_time = algorithms.a_star(nodes_list,
+                                                                                               grid.start_node,
+                                                                                               grid.end_node,
+                                                                                               visited_list)
                 solved = True
             elif run_dijkstra:
-                visited_list, old_visited_list, start_end_dist, total_time = alghorithms.dijkstra(nodes_list,
-                                                                                                  grid.start_node,
-                                                                                                  grid.end_node,
-                                                                                                  visited_list)
+                visited_list, old_visited_list, start_end_dist, total_time = algorithms.dijkstra(nodes_list,
+                                                                                                 grid.start_node,
+                                                                                                 grid.end_node,
+                                                                                                 visited_list)
                 solved = True
         if solved:
             start_node = nodes_list[grid.start_node[0]][grid.start_node[1]]
@@ -253,13 +253,10 @@ while app_running:
             path_dist = 0
             path_list.clear()
             while path.parent is not None:
-                if path.parent.position_x == start_node.position_x and path.parent.position_y == start_node.position_y:
-                    if path_dist == 0:
-                        path_dist = path.parent.f_cost
+                if path.position_x == start_node.position_x and path.position_y == start_node.position_y:
                     break
+                path_dist = path_dist + path.parent_dist
                 path_list.append(path.parent)
-                if path.parent.f_cost > path_dist:
-                    path_dist = path.parent.f_cost
                 path = path.parent
 
     # Draw path
