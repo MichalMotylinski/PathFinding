@@ -9,7 +9,6 @@ def calculate_node_distance(node_a, node_b):
 
 
 def a_star(grid, start_node_cords, end_node_cords, visited_list):
-
     # Reset parameters of all visited nodes considered in previous path creation
     for node in visited_list:
         if not node.obstacle:
@@ -129,7 +128,7 @@ def dijkstra(grid, start_node_cords, end_node_cords, visited_list):
         for neighbour in current_node.neighbours:
             visited_list.append(neighbour) if neighbour not in visited_list else visited_list
             # Skip the node if it was already visited or is an obstacle
-            if neighbour.visited is True or neighbour.obstacle is True:
+            if neighbour.visited or neighbour.obstacle:
                 continue
             # Calculate distance from current node to the start node
             parent_dist = calculate_node_distance(current_node, neighbour)

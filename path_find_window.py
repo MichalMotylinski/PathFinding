@@ -32,10 +32,9 @@ dark_magenta = (150, 0, 150)
 magenta = (200, 0, 200)
 bright_magenta = (250, 0, 250)
 
-# Variables used to reset color in grid cells when not hovered by mouse
+# Variables used to reset color in grid cells
 old_node_x = -1
 old_node_y = -1
-mouse_color = white
 old_start_node = (-1, -1)
 old_end_node = (-1, -1)
 put_start_node = False
@@ -43,15 +42,23 @@ put_end_node = False
 put_obstacle = False
 start_node_created = False
 end_node_created = False
+mouse_color = white
 
+# List of currently visited nodes (used for painting cells)
 visited_list = []
+# List of previously painted nodes (used for resetting cell color)
 old_visited_list = []
+# List containing nodes being part of the path from start to end node
 path_list = []
+# Real distance from start to end
 path_dist = 0
+# Algorithm computation time
 total_time = 0
-start_end_dist = 0
-solved = False
+# Cost of the algorithm (Distance between start and end node in a straight line)
+total_cost = 0
+# Check if A* algorithm is running
 run_a_star = False
+# Check if Dijkstra algorithm is running
 run_dijkstra = False
 
 # Classes
@@ -92,7 +99,7 @@ def legend(pos_x, pos_y, width, height, background_color):
     pos_y = pos_y + 30
     texts = ("Choose action by pressing one of the buttons", "Left mouse button to create objects in the grid",
              "Right mouse button to remove objects from grid", separator, "Algorithm time: " + str(total_time) + " s",
-             "Start-End distance: " + str(start_end_dist), "Path distance: " + str(path_dist))
+             "Start-End distance: " + str(total_cost), "Path distance: " + str(path_dist))
 
     for line in texts:
         pygame.draw.rect(screen, background_color, (pos_x, pos_y, width, height))
@@ -171,12 +178,11 @@ def reset_grid():
 
 # Reset algorithms data
 def reset_algorithm(full_reset):
-    global path_dist, start_end_dist, total_time, solved
+    global path_dist, total_cost, total_time
     path_dist = 0
-    start_end_dist = 0
+    total_cost = 0
     total_time = 0
     path_list.clear()
-    solved = False
     for x in range(grid.columns):
         for y in range(grid.rows):
             nodes_list[x][y].g_cost = float('inf')
@@ -216,8 +222,8 @@ while app_running:
     button("End position", 1025, 280, 150, 50, dark_red, red, bright_red, event)
     button("Obstacle", 825, 340, 150, 50, dark_grey, grey, bright_grey, event)
     button("Reset grid", 1025, 340, 150, 50, dark_magenta, magenta, bright_magenta, event)
-    button("Solve A*", 825, 400, 150, 50, dark_yellow, yellow, bright_yellow, event)
-    button("Solve Dijkstra", 1025, 400, 150, 50, dark_yellow, yellow, bright_yellow, event)
+    button("Solve A*", 925, 410, 150, 50, dark_yellow, yellow, bright_yellow, event)
+    button("Solve Dijkstra", 925, 470, 150, 50, dark_yellow, yellow, bright_yellow, event)
 
     # Rendering path and visited nodes between start and end node
     if start_node_created and end_node_created:
@@ -233,20 +239,17 @@ while app_running:
             if node not in visited_list and not node.obstacle:
                 draw_node(node.position_x, node.position_y, white)
 
-        if not solved:
-            if run_a_star:
-                visited_list, old_visited_list, start_end_dist, total_time = algorithms.a_star(nodes_list,
-                                                                                               grid.start_node,
-                                                                                               grid.end_node,
-                                                                                               visited_list)
-                solved = True
-            elif run_dijkstra:
-                visited_list, old_visited_list, start_end_dist, total_time = algorithms.dijkstra(nodes_list,
-                                                                                                 grid.start_node,
-                                                                                                 grid.end_node,
-                                                                                                 visited_list)
-                solved = True
-        if solved:
+        if run_a_star:
+            visited_list, old_visited_list, total_cost, total_time = algorithms.a_star(nodes_list,
+                                                                                       grid.start_node,
+                                                                                       grid.end_node,
+                                                                                       visited_list)
+        elif run_dijkstra:
+            visited_list, old_visited_list, total_cost, total_time = algorithms.dijkstra(nodes_list,
+                                                                                         grid.start_node,
+                                                                                         grid.end_node,
+                                                                                         visited_list)
+        if run_a_star or run_dijkstra:
             start_node = nodes_list[grid.start_node[0]][grid.start_node[1]]
             end_node = nodes_list[grid.end_node[0]][grid.end_node[1]]
             path = end_node
@@ -265,8 +268,9 @@ while app_running:
             draw_node(node.position_x, node.position_y, blue)
 
     # Rendering cells colors when hoovering over with mouse
+    # Check if mouse cursor is within the grid
     if grid.width > mouse[0] >= 0 and grid.height > mouse[1] >= 0:
-
+        #
         if old_node_x != -1 and old_node_y != -1 and not nodes_list[old_node_x][old_node_y].visited \
                 and not nodes_list[old_node_x][old_node_y].obstacle:
             draw_node(old_node_x, old_node_y, white)
@@ -282,37 +286,31 @@ while app_running:
                 and not nodes_list[node_x][node_y].obstacle:
             draw_node(node_x, node_y, mouse_color)
 
-            if mouse_clicked[0] == 1 and put_start_node and (node_x, node_y) != grid.end_node \
-                    and not nodes_list[node_x][node_y].obstacle:
+            if mouse_clicked[0] == 1 and mouse_color == dark_green and (node_x, node_y) != grid.end_node:
                 grid.start_node = (node_x, node_y)
                 start_node_created = True
-                if nodes_list[node_x][node_y].obstacle:
-                    nodes_list[node_x][node_y].obstacle = False
-                solved = False
-            elif mouse_clicked[0] == 1 and put_end_node and (node_x, node_y) != grid.start_node \
-                    and not nodes_list[node_x][node_y].obstacle:
+            elif mouse_clicked[0] == 1 and mouse_color == dark_red and (node_x, node_y) != grid.start_node:
                 grid.end_node = (node_x, node_y)
                 end_node_created = True
-                if nodes_list[node_x][node_y].obstacle:
-                    nodes_list[node_x][node_y].obstacle = False
-                solved = False
-            elif mouse_clicked[0] == 1 and put_obstacle and (node_x, node_y) != grid.start_node \
+            elif mouse_clicked[0] == 1 and mouse_color == dark_grey and (node_x, node_y) != grid.start_node \
                     and (node_x, node_y) != grid.end_node:
                 nodes_list[node_x][node_y].obstacle = True
-                solved = False
 
+            # Save last hovered node position
             old_node_x = node_x
             old_node_y = node_y
-
+    # If mouse cursor outside grid
     else:
+        # If node was not part of the algorithm calculation, paint it with default color (white)
         if old_node_x != -1 and old_node_y != -1 and not nodes_list[old_node_x][old_node_y].visited \
                 and not nodes_list[old_node_x][old_node_y].obstacle:
             draw_node(old_node_x, old_node_y, white)
-        elif old_node_x != -1 and old_node_y != -1 and nodes_list[old_node_x][old_node_y].visited:
+        # If node is not a start or end and was visited then paint it yellow
+        elif old_node_x != -1 and old_node_y != -1 and nodes_list[old_node_x][old_node_y].visited \
+                and not nodes_list[old_node_x][old_node_y].obstacle:
             draw_node(old_node_x, old_node_y, yellow)
-            if nodes_list[old_node_x][old_node_y].obstacle:
-                draw_node(old_node_x, old_node_y, dark_grey)
-            elif nodes_list[old_node_x][old_node_y] in path_list and not nodes_list[old_node_x][old_node_y].obstacle:
+            # If visited node is part of the final path paint it blue
+            if nodes_list[old_node_x][old_node_y] in path_list:
                 draw_node(old_node_x, old_node_y, blue)
 
     # Remove obstacle action
@@ -322,7 +320,6 @@ while app_running:
             if nodes_list[node_x][node_y].obstacle:
                 nodes_list[node_x][node_y].obstacle = False
                 draw_node(node_x, node_y, white)
-                solved = False
 
     # Drawing start node
     if not ((node_width * grid.start_node[0]) + node_width > mouse[0] > node_width * grid.start_node[0]
